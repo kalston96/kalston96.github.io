@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's For Dinner</title>
+<meta name="description" content="Pick tonight's dinner together: cheap, hearty, toddler-friendly.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍲</text></svg>">
+<style>
+:root{
+  --bg:#fbf7f2; --card:#ffffff; --ink:#2b2420; --muted:#7a6d64; --line:#ece3da;
+  --accent:#d9622b; --accent-ink:#fff; --yes:#2f8f5b; --maybe:#c99a2e; --no:#c0443a;
+  --soft:#f5ece3; --shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1715; --card:#252020; --ink:#f3ebe4; --muted:#ab9d92; --line:#3a322e;
+    --accent:#f07c43; --accent-ink:#1b1715; --yes:#4cbf80; --maybe:#e0b64c; --no:#e2675c;
+    --soft:#2e2724; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1715; --card:#252020; --ink:#f3ebe4; --muted:#ab9d92; --line:#3a322e;
+  --accent:#f07c43; --accent-ink:#1b1715; --yes:#4cbf80; --maybe:#e0b64c; --no:#e2675c;
+  --soft:#2e2724; --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:620px;margin:0 auto;padding:20px 16px 96px}
+h1{font-size:1.6rem;margin:.2em 0 .1em;letter-spacing:-.01em}
+h2{font-size:1.15rem;margin:1.4em 0 .5em}
+p{margin:.4em 0}
+.muted{color:var(--muted)}
+.small{font-size:.875rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);margin:10px 0}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1;min-width:0}
+.emoji{font-size:1.7rem;width:2.2rem;text-align:center;flex:none}
+.meal-name{font-weight:600}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.pill{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.kid{color:var(--yes)}
+.votes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.vote{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:10px;padding:8px 0;font:inherit;font-size:.9rem;cursor:pointer}
+.vote[aria-pressed="true"][data-v="2"]{background:var(--yes);border-color:var(--yes);color:#fff}
+.vote[aria-pressed="true"][data-v="1"]{background:var(--maybe);border-color:var(--maybe);color:#fff}
+.vote[aria-pressed="true"][data-v="0"]{background:var(--no);border-color:var(--no);color:#fff}
+.btn{display:inline-flex;justify-content:center;align-items:center;gap:8px;border:0;border-radius:12px;padding:13px 18px;font:inherit;font-weight:600;cursor:pointer;background:var(--accent);color:var(--accent-ink);text-decoration:none;width:100%}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn+.btn{margin-top:8px}
+.sticky{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%)}
+.sticky .inner{max-width:620px;margin:0 auto}
+input[type=text]{width:100%;font:inherit;padding:12px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.check input{width:20px;height:20px;margin-top:3px;accent-color:var(--accent);flex:none}
+.tag{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.hero{border:2px solid var(--accent)}
+.who{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.who span{font-size:.78rem;padding:2px 8px;border-radius:6px;background:var(--soft)}
+.note{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:.9rem;margin-top:8px}
+.link{color:var(--accent);background:none;border:0;font:inherit;cursor:pointer;padding:0;text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.9rem;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@keyframes pop{0%{transform:scale(.96);opacity:.4}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .25s ease-out}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<script>
+// ---------- Menu data ----------
+// cost = rough $ per serving for 2 adults + a toddler; mins = hands-on + cook time.
+const MEALS = [
+  {id:"sheetpan", e:"🌭", n:"Sheet-pan sausage, potatoes & green beans", cost:3, mins:35, t:["one pan"], kid:"Cut sausage into thin half-moons (never coins); potatoes cooked soft."},
+  {id:"ziti", e:"🍝", n:"Baked ziti", cost:2, mins:40, t:["leftovers"], kid:"Scoop a cooled spoonful — kids love the cheesy noodles."},
+  {id:"chili", e:"🌶️", n:"Chili + cornbread", cost:2, mins:45, t:["slow cooker ok","leftovers"], kid:"Pull his portion before adding heat; top with cheese, cornbread on the side."},
+  {id:"brinner", e:"🥞", n:"Breakfast for dinner (eggs, pancakes, fruit)", cost:1.5, mins:20, t:["fast"], kid:"Mini pancakes, soft scrambled eggs, berries cut in halves/quarters."},
+  {id:"chxrice", e:"🍗", n:"Cheesy chicken, broccoli & rice casserole", cost:2.5, mins:45, t:["one pan","leftovers"], kid:"Chop broccoli small; it's soft and cheesy so it usually goes over well."},
+  {id:"tacos", e:"🌮", n:"Taco night (beef or beans)", cost:2.5, mins:25, t:["fast"], kid:"Deconstructed plate: meat, cheese, rice, soft tortilla strips."},
+  {id:"pizza", e:"🍕", n:"Naan / tortilla pizzas", cost:2, mins:20, t:["fast","kid helps"], kid:"Let him put the toppings on his own mini pizza."},
+  {id:"friedrice", e:"🍳", n:"Egg fried rice with frozen veggies", cost:1.5, mins:20, t:["fast","fridge clean-out"], kid:"Go light on soy sauce for his portion."},
+  {id:"pulled", e:"🥪", n:"Slow-cooker pulled chicken sandwiches", cost:2.5, mins:15, t:["slow cooker","leftovers"], kid:"Shredded chicken + soft bun pieces; sauce on the side."},
+  {id:"mac", e:"🧀", n:"Mac & cheese, hot dogs & broccoli", cost:1.75, mins:20, t:["fast"], kid:"Quarter hot dogs lengthwise, then chop — choking hazard otherwise."},
+  {id:"potato", e:"🥔", n:"Loaded baked potato bar", cost:1.5, mins:20, t:["microwave ok","fridge clean-out"], kid:"Mashed potato with butter, cheese and peas mixed in."},
+  {id:"soup", e:"🍜", n:"Chicken noodle soup", cost:2, mins:35, t:["leftovers"], kid:"Serve it cooled and strained-ish — noodles, chicken, carrots on a plate."},
+  {id:"meatballs", e:"🍝", n:"Spaghetti & meatballs", cost:2.5, mins:35, t:["leftovers"], kid:"Break up meatballs and cut spaghetti short."},
+  {id:"quesadilla", e:"🫓", n:"Quesadillas + black beans & rice", cost:1.5, mins:15, t:["fast"], kid:"Cheese quesadilla triangles; slightly mash the beans."},
+  {id:"teriyaki", e:"🍚", n:"Teriyaki chicken rice bowls", cost:3, mins:30, t:[], kid:"Small pieces of chicken, rice and soft carrots, light sauce."},
+  {id:"shepherd", e:"🥧", n:"Shepherd's pie", cost:3, mins:50, t:["leftovers"], kid:"Already soft — basically made for toddlers."},
+  {id:"grilledcheese", e:"🥫", n:"Grilled cheese & tomato soup", cost:1.5, mins:15, t:["fast"], kid:"Cut the sandwich into strips for dipping."},
+];
+const KID = [
+  {id:"k-noodles", e:"🍜", n:"Buttered noodles + peas", mins:10},
+  {id:"k-eggs", e:"🍳", n:"Scrambled eggs, toast fingers & berries", mins:10},
+  {id:"k-quesa", e:"🧀", n:"Cheese quesadilla triangles", mins:5},
+  {id:"k-nuggets", e:"🍗", n:"Air-fryer nuggets + sweet potato fries", mins:15},
+  {id:"k-plate", e:"🧺", n:"Snack plate: cheese cubes, crackers, fruit, yogurt", mins:5},
+  {id:"k-pbtoast", e:"🍞", n:"Thin PB toast strips + thin apple slices", mins:5},
+  {id:"k-mac", e:"🥣", n:"Mac & cheese cup + steamed broccoli", mins:8},
+  {id:"k-ricebeans", e:"🍚", n:"Rice, mashed beans & melted cheese", mins:5},
+  {id:"k-muffinpizza", e:"🍕", n:"English-muffin mini pizzas", mins:10},
+  {id:"k-pancakes", e:"🥞", n:"Frozen mini pancakes + banana", mins:5},
+];
+const VOTE_LABEL = {2:"👍 Yes", 1:"🤷 Maybe", 0:"👎 No"};
+
+// ---------- State (lives in the link, so no accounts or server) ----------
+const today = new Date().toLocaleDateString("en-CA");
+const enc = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const dec = s => { try { s=s.replace(/-/g,"+").replace(/_/g,"/"); return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)))); } catch(e){ return null; } };
+const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
+
+let S = dec(location.hash.slice(1)) || fresh();
+function fresh(){ return {v:1, d:today, c:[], a:null, b:null, f:null}; }
+let draft = null;   // my in-progress vote {n, r:{}, k:[], s:bool}
+let screen = null;
+
+// S.o = true means "only tonight's custom list" (used by the Claude skill's links).
+const allMeals = () => (S.o ? [] : MEALS).concat((S.c||[]).map(c => ({id:c.id, e:"✨", n:c.n, cost:null, mins:null, t:["custom"], kid:""})));
+const meal = id => allMeals().find(m => m.id===id) || KID.find(k => k.id===id);
+const link = () => location.origin + location.pathname + "#" + enc(S);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function pickScreen(){
+  if (S.a && S.b) return "results";
+  if (S.a && store.get("dinner.name") === S.a.n) return "waiting";
+  return "intro";
+}
+
+// ---------- Rendering ----------
+const app = document.getElementById("app");
+function go(s){ screen = s; render(); window.scrollTo(0,0); }
+function render(){ app.innerHTML = VIEWS[screen](); app.firstElementChild?.classList.add("pop"); }
+
+const pills = m => `<div class="meta">
+  ${m.cost!=null?`<span class="pill">~$${m.cost.toFixed(2)}/serving</span>`:""}
+  ${m.mins!=null?`<span class="pill">${m.mins} min</span>`:""}
+  ${m.t.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}
+</div>`;
+
+const VIEWS = {
+  intro(){
+    const second = !!S.a;
+    const stale = S.d !== today;
+    return `<section>
+      <div class="tag">Tonight · ${new Date().toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})}</div>
+      <h1>${second ? `${esc(S.a.n)} voted. Your turn 🍽️` : "What's for dinner?"}</h1>
+      <p class="muted">${second
+        ? `Their picks stay hidden until you vote, so you're not swayed. Then you'll both see the matches.`
+        : `Vote yes / maybe / no on cheap, hearty dinners, pick a few easy backups for the little guy, then text the link to your partner. Anything either of you says no to is out.`}</p>
+      ${stale && second ? `<div class="note">Heads up: this link is from ${esc(S.d)}. <button class="link" onclick="restart()">Start fresh for tonight</button></div>`:""}
+      <div class="card">
+        <label class="small muted" for="nm">Your name</label>
+        <input id="nm" type="text" autocomplete="given-name" placeholder="e.g. Kenny" value="${esc(store.get("dinner.name")||"")}">
+      </div>
+      <button class="btn" onclick="startVote()">Start voting →</button>
+      ${second?"":`<p class="small muted" style="margin-top:14px">Works on any phone. Your partner doesn't need an account or an app.</p>`}
+    </section>`;
+  },
+
+  vote(){
+    const ms = allMeals();
+    const done = ms.filter(m => m.id in draft.r).length;
+    return `<section>
+      <div class="tag">Step 1 of 2 · Grown-up dinner</div>
+      <h1>What sounds good?</h1>
+      <p class="muted small">${done}/${ms.length} rated. Skipped ones count as maybe.</p>
+      ${ms.map(m => `<div class="card">
+        <div class="row"><div class="emoji">${m.e}</div>
+          <div class="grow"><div class="meal-name">${esc(m.n)}</div>${pills(m)}</div></div>
+        <div class="votes">${[2,1,0].map(v=>`<button class="vote" data-v="${v}" aria-pressed="${draft.r[m.id]===v}" onclick="rate('${m.id}',${v})">${VOTE_LABEL[v]}</button>`).join("")}</div>
+      </div>`).join("")}
+      <div class="card">
+        <label class="small muted" for="custom">Craving something else? Add it to the list</label>
+        <div class="row" style="margin-top:6px"><input id="custom" type="text" placeholder="e.g. leftover lasagna" class="grow" onkeydown="if(event.key==='Enter')addCustom()">
+        <button class="btn" style="width:auto" onclick="addCustom()">Add</button></div>
+      </div>
+      <div class="sticky"><div class="inner"><button class="btn" onclick="go('kid')">Next: his dinner →</button></div></div>
+    </section>`;
+  },
+
+  kid(){
+    return `<section>
+      <div class="tag">Step 2 of 2 · Toddler</div>
+      <h1>What about the little guy?</h1>
+      <div class="card"><label class="check"><input type="checkbox" ${draft.s?"checked":""} onchange="draft.s=this.checked">
+        <span><b>He eats what we eat</b><br><span class="small muted">If our pick works for him, you'll get tips for adapting it.</span></span></label></div>
+      <h2>Easy backups if he won't eat ours <span class="muted small">(pick any)</span></h2>
+      ${KID.map(k => `<div class="card"><label class="check"><input type="checkbox" ${draft.k.includes(k.id)?"checked":""} onchange="toggleKid('${k.id}',this.checked)">
+        <span class="grow"><span class="meal-name">${k.e} ${esc(k.n)}</span><br><span class="small muted">${k.mins} min</span></span></label></div>`).join("")}
+      <p class="small muted">Two-year-old safety: quarter grapes, cherry tomatoes and hot dogs lengthwise; spread nut butter thin.</p>
+      <div class="sticky"><div class="inner">
+        <button class="btn" onclick="submit()">${S.a ? "See our matches 🎉" : "Done: send to my partner →"}</button>
+      </div></div>
+    </section>`;
+  },
+
+  waiting(){
+    return `<section>
+      <div class="tag">Your votes are in</div>
+      <h1>Now send it 📲</h1>
+      <p class="muted">Text this link to your partner. Once they vote, they'll see the matches and can send the result back.</p>
+      ${shareButtons(`Dinner tonight? I voted. Your turn: ${link()}`)}
+      <div class="card small"><span class="muted">Or copy the link:</span><br><code style="word-break:break-all">${esc(link())}</code></div>
+      <p class="small"><button class="link" onclick="redoVote()">Change my votes</button> · <button class="link" onclick="restart()">Start over</button></p>
+    </section>`;
+  },
+
+  results(){
+    const {ranked, vetoed} = tally();
+    const final = S.f && meal(S.f);
+    const top = ranked[0];
+    const topTier = ranked.filter(r => r.score === top?.score);
+    const both = [S.a, S.b];
+    const kidShare = both.every(p => p.s);
+    const kidCounts = {};
+    both.forEach(p => p.k.forEach(id => kidCounts[id] = (kidCounts[id]||0)+1));
+    const kidRanked = Object.entries(kidCounts).sort((x,y)=>y[1]-x[1]).map(([id,c])=>({k:KID.find(k=>k.id===id), c})).filter(x=>x.k);
+    const dinner = final || top?.m;
+
+    return `<section>
+      <div class="tag">${esc(S.a.n)} + ${esc(S.b.n)}</div>
+      <h1>${final ? `Dinner's decided: ${final.e} ${esc(final.n)}` : ranked.length ? "Here's what you both want" : "Tough crowd 😅"}</h1>
+
+      ${!ranked.length ? `<p class="muted">Every option got a no from someone. Try again with an open mind, or add a custom idea.</p>
+        <button class="btn" onclick="restart()">Vote again</button>` : ""}
+
+      ${!final && ranked.length ? `<div class="card hero">
+          <div class="tag">${top.score===4?"Perfect match":"Best match"}</div>
+          ${mealRow(top)}
+          ${top.m.kid?`<div class="note">👶 ${esc(top.m.kid)}</div>`:""}
+          <button class="btn" style="margin-top:12px" onclick="lockIn('${top.m.id}')">Lock it in ✅</button>
+          ${topTier.length>1?`<button class="btn ghost" onclick="spin()">🎲 It's a tie (${topTier.length} options). Spin for us</button>`:""}
+        </div>` : ""}
+
+      ${final ? `<div class="card hero">${final.kid?`<div class="note">👶 ${esc(final.kid)}</div>`:""}
+        ${shareButtons(`Dinner's decided: ${final.n}! ${link()}`)}
+        <p class="small" style="margin-top:8px"><button class="link" onclick="S.f=null;save();render()">Change pick</button></p></div>` : ""}
+
+      ${dinner ? `<h2>👶 His dinner</h2>
+        ${kidShare && dinner.kid ? `<div class="card"><b>He's eating ours.</b> <span class="muted">${esc(dinner.kid)}</span></div>` : ""}
+        ${kidRanked.length ? `<p class="small muted">${kidShare?"Backup if he refuses:":"Your picks for him:"}</p>
+          ${kidRanked.slice(0,3).map(({k,c})=>`<div class="card"><div class="row"><div class="emoji">${k.e}</div><div class="grow"><div class="meal-name">${esc(k.n)}</div>
+          <div class="meta"><span class="pill">${k.mins} min</span>${c===2?`<span class="pill kid">you both picked</span>`:""}</div></div></div></div>`).join("")}`
+          : !kidShare ? `<p class="muted small">No backups picked. Buttered noodles + peas is a 10-minute safe bet.</p>` : ""}` : ""}
+
+      ${!final && ranked.length>1 ? `<h2>Other options you both like</h2>${ranked.slice(1,6).map(r=>`<div class="card">${mealRow(r)}
+        <button class="btn ghost" style="margin-top:10px" onclick="lockIn('${r.m.id}')">Pick this instead</button></div>`).join("")}` : ""}
+
+      ${!final && ranked.length ? shareButtons(`Our dinner matches: ${link()}`, "Send results") : ""}
+      <p class="small muted" style="margin-top:16px">${vetoed} option${vetoed===1?"":"s"} got vetoed. <button class="link" onclick="restart()">Start a new night</button></p>
+    </section>`;
+  },
+};
+
+function mealRow(r){
+  return `<div class="row"><div class="emoji">${r.m.e}</div><div class="grow"><div class="meal-name">${esc(r.m.n)}</div>${pills(r.m)}
+    <div class="who"><span>${esc(S.a.n)}: ${VOTE_LABEL[r.va]}</span><span>${esc(S.b.n)}: ${VOTE_LABEL[r.vb]}</span></div></div></div>`;
+}
+
+function shareButtons(text, label){
+  return `<button class="btn" onclick='share(${JSON.stringify(text)})'>📤 ${label||"Share link"}</button>
+    <a class="btn ghost" href="sms:?&body=${encodeURIComponent(text)}">💬 Send as text</a>`;
+}
+
+// ---------- Logic ----------
+function tally(){
+  const ranked = []; let vetoed = 0;
+  for (const m of allMeals()){
+    const va = S.a.r[m.id] ?? 1, vb = S.b.r[m.id] ?? 1;
+    if (va===0 || vb===0){ vetoed++; continue; }
+    ranked.push({m, va, vb, score: va+vb});
+  }
+  // Higher combined score first; break ties by cheaper, then faster.
+  ranked.sort((x,y) => y.score-x.score || (x.m.cost??9)-(y.m.cost??9) || (x.m.mins??99)-(y.m.mins??99));
+  return {ranked, vetoed};
+}
+
+function startVote(){
+  const n = document.getElementById("nm").value.trim();
+  if (!n){ toast("Add your name first"); return; }
+  if (S.a && n.toLowerCase() === S.a.n.toLowerCase()){ toast(`${S.a.n} already voted. Send this link to your partner`); return; }
+  store.set("dinner.name", n);
+  if (S.d !== today && !S.a) S = fresh();
+  draft = {n, r:{}, k:[], s:true};
+  go("vote");
+}
+function rate(id, v){ draft.r[id] = v; const y = window.scrollY; render(); window.scrollTo(0,y); }
+function toggleKid(id, on){ draft.k = draft.k.filter(x=>x!==id); if (on) draft.k.push(id); }
+function addCustom(){
+  const el = document.getElementById("custom"), n = el.value.trim();
+  if (!n) return;
+  const id = "c" + Date.now().toString(36);
+  S.c = (S.c||[]).concat({id, n}); draft.r[id] = 2;
+  render(); toast("Added. Marked as a yes for you");
+}
+function submit(){
+  if (!S.a){ S.a = draft; S.d = today; save(); go("waiting"); }
+  else { S.b = draft; save(); go("results"); }
+}
+function redoVote(){ draft = S.a; S.a = null; go("vote"); }
+function lockIn(id){ S.f = id; save(); render(); window.scrollTo(0,0); toast("Locked in. Send it so they know"); }
+function spin(){
+  const {ranked} = tally(); const tier = ranked.filter(r=>r.score===ranked[0].score);
+  const pick = tier[Math.floor(Math.random()*tier.length)];
+  toast(`🎲 ${pick.m.n}`); setTimeout(()=>lockIn(pick.m.id), 700);
+}
+function restart(){ S = fresh(); history.replaceState(null,"",location.pathname); go("intro"); }
+function save(){ history.replaceState(null, "", "#" + enc(S)); }
+
+async function share(text){
+  if (navigator.share){ try { await navigator.share({text}); return; } catch(e){ if (e.name==="AbortError") return; } }
+  try { await navigator.clipboard.writeText(text); toast("Copied. Paste it in a text"); }
+  catch(e){ prompt("Copy this:", text); }
+}
+let tt; function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2200); }
+
+window.addEventListener("hashchange", () => { S = dec(location.hash.slice(1)) || fresh(); go(pickScreen()); });
+go(pickScreen());
+</script>
+</body>
+</html>
