@@ -12,15 +12,27 @@ The voting page is at https://kalston96.github.io/dinner/. Both people vote 👍
 option. Anything either person vetoes is out, and the best mutual match wins (ties go to cheaper,
 then faster). The whole vote lives in the link, so it works by text message with no login.
 
+## House rules (always apply)
+
+- **Time is the main constraint.** Cooking starts at 7:00 PM, or 6:30 PM at the earliest, and
+  everyone eats between 8:00 and 8:30. Every dinner must take **60 minutes or less** from start to
+  table. Nothing that needs a morning slow-cooker start or overnight marinating.
+- **Prefer what's already at home**, then things that are easy to grab on the way home.
+- **Budget:** about **$3 per serving or less**. Plan **4 servings**: 2 adults, the toddler, and about
+  one leftover lunch. That's roughly $12 for the whole meal.
+- **Hearty:** a protein, a filling starch (pasta, rice, potatoes, bread, tortillas) and a vegetable
+  or fruit, so nobody's hungry an hour later.
+- **No mushrooms**, ever. Watch for hidden ones in frozen stir-fry mixes and cream-of-mushroom soup.
+
 ## Steps
 
 1. **Ask at most two quick questions** (skip any the user already answered):
    - Anything in the fridge or pantry that needs using up?
-   - How much time tonight: under 20 minutes, about 45, or slow cooker / all day?
+   - Starting at 6:30 or 7:00 tonight?
 
-2. **Suggest 3–5 dinners** that fit. Each one must be:
-   - **Cheap**: about $3 per serving or less, using pantry staples.
-   - **Hearty**: protein + starch, fills adults up.
+2. **Suggest 3–5 dinners** that fit the house rules. For each, give the cook time and the time
+   you'll eat (for example, "35 min, eat ~7:40") and a short shopping list for 4 servings.
+   Each one must also be:
    - **Toddler-friendly**: soft, mild, and easy to cut up. For each, add one line on how to adapt it
      for a 2-year-old (pull a portion before adding spice, cut small, sauce on the side).
 

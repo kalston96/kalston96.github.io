@@ -70,25 +70,45 @@ input[type=text]{width:100%;font:inherit;padding:12px;border-radius:10px;border:
 <div class="toast" id="toast"></div>
 <script>
 // ---------- Menu data ----------
-// cost = rough $ per serving for 2 adults + a toddler; mins = hands-on + cook time.
+// Every recipe makes 4 servings: 2 adults + toddler + about one leftover lunch.
+// cost = rough $ per serving (max ~$3); mins = start cooking to on the table.
+// House rule: no mushrooms. Watch frozen stir-fry mixes and canned "cream of" soups.
+const SERVINGS = 4;
 const MEALS = [
-  {id:"sheetpan", e:"🌭", n:"Sheet-pan sausage, potatoes & green beans", cost:3, mins:35, t:["one pan"], kid:"Cut sausage into thin half-moons (never coins); potatoes cooked soft."},
-  {id:"ziti", e:"🍝", n:"Baked ziti", cost:2, mins:40, t:["leftovers"], kid:"Scoop a cooled spoonful — kids love the cheesy noodles."},
-  {id:"chili", e:"🌶️", n:"Chili + cornbread", cost:2, mins:45, t:["slow cooker ok","leftovers"], kid:"Pull his portion before adding heat; top with cheese, cornbread on the side."},
-  {id:"brinner", e:"🥞", n:"Breakfast for dinner (eggs, pancakes, fruit)", cost:1.5, mins:20, t:["fast"], kid:"Mini pancakes, soft scrambled eggs, berries cut in halves/quarters."},
-  {id:"chxrice", e:"🍗", n:"Cheesy chicken, broccoli & rice casserole", cost:2.5, mins:45, t:["one pan","leftovers"], kid:"Chop broccoli small; it's soft and cheesy so it usually goes over well."},
-  {id:"tacos", e:"🌮", n:"Taco night (beef or beans)", cost:2.5, mins:25, t:["fast"], kid:"Deconstructed plate: meat, cheese, rice, soft tortilla strips."},
-  {id:"pizza", e:"🍕", n:"Naan / tortilla pizzas", cost:2, mins:20, t:["fast","kid helps"], kid:"Let him put the toppings on his own mini pizza."},
-  {id:"friedrice", e:"🍳", n:"Egg fried rice with frozen veggies", cost:1.5, mins:20, t:["fast","fridge clean-out"], kid:"Go light on soy sauce for his portion."},
-  {id:"pulled", e:"🥪", n:"Slow-cooker pulled chicken sandwiches", cost:2.5, mins:15, t:["slow cooker","leftovers"], kid:"Shredded chicken + soft bun pieces; sauce on the side."},
-  {id:"mac", e:"🧀", n:"Mac & cheese, hot dogs & broccoli", cost:1.75, mins:20, t:["fast"], kid:"Quarter hot dogs lengthwise, then chop — choking hazard otherwise."},
-  {id:"potato", e:"🥔", n:"Loaded baked potato bar", cost:1.5, mins:20, t:["microwave ok","fridge clean-out"], kid:"Mashed potato with butter, cheese and peas mixed in."},
-  {id:"soup", e:"🍜", n:"Chicken noodle soup", cost:2, mins:35, t:["leftovers"], kid:"Serve it cooled and strained-ish — noodles, chicken, carrots on a plate."},
-  {id:"meatballs", e:"🍝", n:"Spaghetti & meatballs", cost:2.5, mins:35, t:["leftovers"], kid:"Break up meatballs and cut spaghetti short."},
-  {id:"quesadilla", e:"🫓", n:"Quesadillas + black beans & rice", cost:1.5, mins:15, t:["fast"], kid:"Cheese quesadilla triangles; slightly mash the beans."},
-  {id:"teriyaki", e:"🍚", n:"Teriyaki chicken rice bowls", cost:3, mins:30, t:[], kid:"Small pieces of chicken, rice and soft carrots, light sauce."},
-  {id:"shepherd", e:"🥧", n:"Shepherd's pie", cost:3, mins:50, t:["leftovers"], kid:"Already soft — basically made for toddlers."},
-  {id:"grilledcheese", e:"🥫", n:"Grilled cheese & tomato soup", cost:1.5, mins:15, t:["fast"], kid:"Cut the sandwich into strips for dipping."},
+  {id:"sheetpan", e:"🌭", n:"Sheet-pan sausage, potatoes & green beans", cost:3, mins:35, t:["one pan"], kid:"Cut sausage into thin half-moons (never coins); potatoes cooked soft.",
+    ing:["Smoked sausage (13 oz pack)","Potatoes (2 lb)","Green beans, fresh or frozen (1 lb)","Olive oil + seasoning"]},
+  {id:"ziti", e:"🍝", n:"Baked ziti", cost:2.5, mins:40, t:["leftovers"], kid:"Scoop a cooled spoonful. Kids love the cheesy noodles.",
+    ing:["Ziti or penne (1 lb)","Marinara (24 oz jar)","Ricotta or cottage cheese (15 oz)","Shredded mozzarella (2 cups)","Ground beef (1/2 lb, optional)"]},
+  {id:"chili", e:"🌶️", n:"Chili + cornbread", cost:2.5, mins:45, t:["leftovers"], kid:"Set his portion aside before adding heat; top with cheese, cornbread on the side.",
+    ing:["Ground beef (1 lb)","Kidney or pinto beans (2 cans)","Diced tomatoes (1 can)","Tomato sauce (1 can)","Onion","Chili seasoning packet","Cornbread mix + egg + milk"]},
+  {id:"brinner", e:"🥞", n:"Breakfast for dinner (eggs, pancakes, bacon, fruit)", cost:2, mins:20, t:["fast"], kid:"Mini pancakes, soft scrambled eggs, berries cut in halves or quarters.",
+    ing:["Pancake mix","Eggs (8)","Milk","Bacon or sausage links","Fruit (bananas or berries)"]},
+  {id:"chxrice", e:"🍗", n:"Cheesy chicken, broccoli & rice skillet", cost:2.5, mins:35, t:["one pan","leftovers"], kid:"Chop broccoli small; it's soft and cheesy so it usually goes over well.",
+    ing:["Chicken breast or thighs (1.5 lb)","Rice (1.5 cups)","Chicken broth (32 oz)","Frozen broccoli (12 oz)","Shredded cheddar (1.5 cups)"]},
+  {id:"tacos", e:"🌮", n:"Taco night (beef or beans)", cost:2.5, mins:25, t:["fast"], kid:"Deconstructed plate: meat, cheese, rice, soft tortilla strips.",
+    ing:["Ground beef (1 lb) or black beans (2 cans)","Taco seasoning","Tortillas","Shredded cheese","Lettuce + tomato","Sour cream","Rice (1 cup)"]},
+  {id:"pizza", e:"🍕", n:"Naan pizzas + side salad", cost:2.5, mins:20, t:["fast","kid helps"], kid:"Let him put the toppings on his own mini pizza.",
+    ing:["Naan (4-pack)","Pizza sauce","Shredded mozzarella (2 cups)","Pepperoni","Bagged salad"]},
+  {id:"friedrice", e:"🍳", n:"Egg fried rice with ham & veggies", cost:1.75, mins:20, t:["fast","fridge clean-out"], kid:"Go light on soy sauce for his portion.",
+    ing:["Rice (3 cups cooked, day-old is best)","Eggs (4)","Frozen peas & carrots (12 oz)","Diced ham or leftover chicken","Soy sauce","Green onion"]},
+  {id:"bbqchx", e:"🥪", n:"BBQ shredded chicken sandwiches + corn", cost:2.75, mins:30, t:["leftovers"], kid:"Shredded chicken + soft bun pieces; sauce on the side.",
+    ing:["Chicken breast (1.5 lb)","BBQ sauce","Buns (4+)","Frozen corn (12 oz)"]},
+  {id:"mac", e:"🧀", n:"Mac & cheese, hot dogs & broccoli", cost:1.75, mins:20, t:["fast"], kid:"Quarter hot dogs lengthwise, then chop. Whole pieces are a choking hazard.",
+    ing:["Mac & cheese (2 boxes)","Hot dogs (1 pack)","Frozen broccoli (12 oz)","Milk + butter"]},
+  {id:"potato", e:"🥔", n:"Loaded baked potato bar", cost:2, mins:20, t:["microwave","fridge clean-out"], kid:"Mashed potato with butter, cheese and peas mixed in.",
+    ing:["Large russet potatoes (4-5)","Shredded cheddar","Sour cream","Bacon bits or leftover chili","Frozen broccoli"]},
+  {id:"soup", e:"🍜", n:"Chicken noodle soup + bread", cost:2.25, mins:35, t:["leftovers"], kid:"Serve it cooled, on a plate: noodles, chicken, carrots.",
+    ing:["Chicken breast (1.5 lb)","Chicken broth (2 x 32 oz)","Carrots (3)","Celery (2 stalks)","Onion","Egg noodles (8 oz)","Bread or rolls"]},
+  {id:"meatballs", e:"🍝", n:"Spaghetti & meatballs", cost:2.5, mins:25, t:["fast","leftovers"], kid:"Break up meatballs and cut spaghetti short.",
+    ing:["Spaghetti (1 lb)","Frozen meatballs (1 bag)","Marinara (24 oz jar)","Parmesan","Bagged salad"]},
+  {id:"quesadilla", e:"🫓", n:"Chicken quesadillas + black beans & rice", cost:2, mins:20, t:["fast"], kid:"Cheese quesadilla triangles; slightly mash the beans.",
+    ing:["Tortillas (8)","Shredded cheese (2 cups)","Cooked chicken (leftover or rotisserie)","Black beans (2 cans)","Rice (1.5 cups)","Salsa + sour cream"]},
+  {id:"teriyaki", e:"🍚", n:"Teriyaki chicken rice bowls", cost:3, mins:30, t:[], kid:"Small pieces of chicken, rice and soft carrots, light sauce.",
+    ing:["Chicken thighs (1.5 lb)","Teriyaki sauce","Rice (1.5 cups)","Frozen stir-fry veggies (12 oz; check for mushrooms)"]},
+  {id:"shepherd", e:"🥧", n:"Shepherd's pie (instant mash shortcut)", cost:3, mins:40, t:["leftovers"], kid:"Already soft. Basically made for toddlers.",
+    ing:["Ground beef (1 lb)","Frozen peas & carrots (12 oz)","Onion","Brown gravy packet","Instant mashed potatoes (or 2.5 lb potatoes)","Shredded cheese"]},
+  {id:"grilledcheese", e:"🥫", n:"Ham & grilled cheese + tomato soup", cost:2, mins:15, t:["fast"], kid:"Cut the sandwich into strips for dipping.",
+    ing:["Bread (8 slices)","Cheese slices (8)","Deli ham","Butter","Tomato soup (2 cans or 32 oz carton)"]},
 ];
 const KID = [
   {id:"k-noodles", e:"🍜", n:"Buttered noodles + peas", mins:10},
@@ -132,9 +152,13 @@ const app = document.getElementById("app");
 function go(s){ screen = s; render(); window.scrollTo(0,0); }
 function render(){ app.innerHTML = VIEWS[screen](); app.firstElementChild?.classList.add("pop"); }
 
+// Start time is "18:30" or "19:00"; "eat by" assumes ~5 min to get everyone to the table.
+const startAt = () => S.t || "19:00";
+const eatBy = mins => { const [h,m] = startAt().split(":").map(Number); const d = new Date(2000,0,1,h,m+mins+5);
+  return d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); };
 const pills = m => `<div class="meta">
-  ${m.cost!=null?`<span class="pill">~$${m.cost.toFixed(2)}/serving</span>`:""}
-  ${m.mins!=null?`<span class="pill">${m.mins} min</span>`:""}
+  ${m.cost!=null?`<span class="pill">~$${m.cost.toFixed(2)}/serving · ~$${Math.round(m.cost*SERVINGS)} total</span>`:""}
+  ${m.mins!=null?`<span class="pill">${m.mins} min · eat ~${eatBy(m.mins)}</span>`:""}
   ${m.t.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}
 </div>`;
 
@@ -151,8 +175,13 @@ const VIEWS = {
       ${stale && second ? `<div class="note">Heads up: this link is from ${esc(S.d)}. <button class="link" onclick="restart()">Start fresh for tonight</button></div>`:""}
       <div class="card">
         <label class="small muted" for="nm">Your name</label>
-        <input id="nm" type="text" autocomplete="given-name" placeholder="e.g. Kenny" value="${esc(store.get("dinner.name")||"")}">
+        <input id="nm" type="text" autocomplete="given-name" placeholder="e.g. Kenny" oninput="store.set('dinner.name',this.value.trim())" value="${esc(store.get("dinner.name")||"")}">
       </div>
+      ${second ? `<p class="small muted">Cooking starts at ${eatBy(-5)}.</p>` : `<div class="card">
+        <div class="small muted">When can we start cooking?</div>
+        <div class="votes" style="grid-template-columns:1fr 1fr">${[["18:30","6:30 PM"],["19:00","7:00 PM"]].map(([v,l])=>
+          `<button class="vote" data-v="2" aria-pressed="${startAt()===v}" onclick="S.t='${v}';render()">${l}</button>`).join("")}</div>
+      </div>`}
       <button class="btn" onclick="startVote()">Start voting →</button>
       ${second?"":`<p class="small muted" style="margin-top:14px">Works on any phone. Your partner doesn't need an account or an app.</p>`}
     </section>`;
@@ -237,6 +266,8 @@ const VIEWS = {
         ${shareButtons(`Dinner's decided: ${final.n}! ${link()}`)}
         <p class="small" style="margin-top:8px"><button class="link" onclick="S.f=null;save();render()">Change pick</button></p></div>` : ""}
 
+      ${dinner && dinner.ing ? groceryCard(dinner) : ""}
+
       ${dinner ? `<h2>👶 His dinner</h2>
         ${kidShare && dinner.kid ? `<div class="card"><b>He's eating ours.</b> <span class="muted">${esc(dinner.kid)}</span></div>` : ""}
         ${kidRanked.length ? `<p class="small muted">${kidShare?"Backup if he refuses:":"Your picks for him:"}</p>
@@ -256,6 +287,24 @@ const VIEWS = {
 function mealRow(r){
   return `<div class="row"><div class="emoji">${r.m.e}</div><div class="grow"><div class="meal-name">${esc(r.m.n)}</div>${pills(r.m)}
     <div class="who"><span>${esc(S.a.n)}: ${VOTE_LABEL[r.va]}</span><span>${esc(S.b.n)}: ${VOTE_LABEL[r.vb]}</span></div></div></div>`;
+}
+
+// "Have it" checkmarks stay on this phone only; whatever's unchecked becomes the shopping list.
+const haveKey = id => "dinner.have." + today + "." + id;
+const getHave = id => { try { return JSON.parse(store.get(haveKey(id))||"[]"); } catch(e){ return []; } };
+function toggleHave(id, i, on){ const h = getHave(id).filter(x=>x!==i); if (on) h.push(i); store.set(haveKey(id), JSON.stringify(h)); }
+function groceryCard(m){
+  const have = getHave(m.id);
+  return `<h2>🛒 Do we have it?</h2>
+    <p class="small muted">Check off what's already at home. The rest is the list for whoever's on the way home.</p>
+    <div class="card">${m.ing.map((x,i)=>`<label class="check" style="margin:6px 0"><input type="checkbox" ${have.includes(i)?"checked":""}
+      onchange="toggleHave('${m.id}',${i},this.checked)"><span>${esc(x)}</span></label>`).join("")}
+      <button class="btn" style="margin-top:10px" onclick="shareList('${m.id}')">📝 Text the shopping list</button></div>`;
+}
+function shareList(id){
+  const m = meal(id), have = getHave(id), need = m.ing.filter((_,i)=>!have.includes(i));
+  if (!need.length){ toast("We've got everything. No stop needed 🎉"); return; }
+  share(`Can you grab these for ${m.n} tonight?\n` + need.map(x=>"• "+x).join("\n"));
 }
 
 function shareButtons(text, label){
@@ -281,7 +330,7 @@ function startVote(){
   if (!n){ toast("Add your name first"); return; }
   if (S.a && n.toLowerCase() === S.a.n.toLowerCase()){ toast(`${S.a.n} already voted. Send this link to your partner`); return; }
   store.set("dinner.name", n);
-  if (S.d !== today && !S.a) S = fresh();
+  if (S.d !== today && !S.a) S = {...fresh(), t:S.t};
   draft = {n, r:{}, k:[], s:true};
   go("vote");
 }
